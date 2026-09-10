@@ -1,12 +1,23 @@
 const express = require('express');
-const { PeerServer } = require('peer');
+const { ExpressPeerServer } = require('peer');
 
+const app = express();
 const PORT = process.env.PORT || 9000;
 
-// Crear e iniciar PeerServer directamente en el puerto asignado por Render
-const peerServer = PeerServer({
-    port: PORT,
-    path: '/peerjs'
+// Ruta principal para confirmación de estado de Render
+app.get('/', (req, res) => {
+    res.send('Servidor de Señalización Ecográfica Activo y Funcionando');
 });
 
-console.log(`Servidor de señalización activo en el puerto ${PORT}`);
+// Inicializar el servidor HTTP
+const server = app.listen(PORT, () => {
+    console.log(`Servidor iniciado y escuchando en el puerto ${PORT}`);
+});
+
+// Adjuntar el servidor PeerJS a Express
+const peerServer = ExpressPeerServer(server, {
+    debug: true,
+    path: '/'
+});
+
+app.use('/peerjs', peerServer);

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma de Telemedicina Ecográfica</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-main: #0a0e17; --card-bg: #141b2d; --accent-blue: #00d2ff; --accent-green: #00ff88; --text-main: #e2e8f0; --text-muted: #94a3b8; --border-color: #1e293b; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-main); color: var(--text-main); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        header { margin-bottom: 25px; text-align: center; }
+        header h1 { font-size: 1.8rem; font-weight: 700; color: #fff; }
+        .container { width: 100%; max-width: 950px; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 25px; margin-bottom: 20px; text-align: center; }
+        .grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; text-align: left; }
+        @media(max-width: 600px) { .grid-form { grid-template-columns: 1fr; } }
+        label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+        select, input { width: 100%; background: #0f172a; border: 1px solid var(--border-color); color: #fff; padding: 12px 14px; border-radius: 8px; font-size: 0.95rem; outline: none; }
+        .btn { background: linear-gradient(135deg, #0052d4, #4364f7, #6fb1fc); color: white; border: none; padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; width: 100%; }
+        .btn-green { background: linear-gradient(135deg, #11998e, #38ef7d); color: #000; }
+        #status-bar { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; border-radius: 8px; background: rgba(15, 23, 42, 0.6); font-size: 0.95rem; font-weight: 600; border: 1px solid var(--border-color); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; }
+        .dot-pulse { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        .video-wrapper { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border-color); }
+        video { width: 100%; height: 500px; display: block; object-fit: contain; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Plataforma de Telemedicina Ecográfica</h1>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <div id="modo-box">
+                <p style="margin-bottom: 15px; font-weight: 500;">Selecciona el modo de operación:</p>
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn" onclick="configurarModo('emisor')">🖥️ MODO BOX (Ecógrafo)</button>
+                    <button class="btn btn-green" onclick="configurarModo('receptor')">👨‍⚕️ CENTRAL RADIÓLOGO</button>
+                </div>
+            </div>
+
+            <!-- FORMULARIO EMISOR -->
+            <div id="emisor-box" style="display:none;">
+                <div class="grid-form">
+                    <div>
+                        <label>Centro Médico</label>
+                        <input type="text" id="centroEmisor" placeholder="Ej: quillota">
+                    </div>
+                    <div>
+                        <label>Sala / Box</label>
+                        <input type="text" id="salaEmisor" placeholder="Ej: sala1">
+                    </div>
+                </div>
+                <button class="btn" onclick="iniciarTransmisionPantalla()">Iniciar Transmisión</button>
+            </div>
+
+            <!-- FORMULARIO RECEPTOR -->
+            <div id="receptor-box" style="display:none;">
+                <div style="margin-bottom: 15px; text-align: left;">
+                    <label>Nombre / Identificación del Radiólogo</label>
+                    <input type="text" id="radiologoNombre" placeholder="Ej: Dr. Francisco Pérez">
+                </div>
+                <div class="grid-form">
+                    <div>
+                        <label>Centro Médico</label>
+                        <input type="text" id="centroReceptor" placeholder="Ej: quillota">
+                    </div>
+                    <div>
+                        <label>Sala / Box</label>
+                        <input type="text" id="salaReceptor" placeholder="Ej: sala1">
+                    </div>
+                </div>
+                <button class="btn btn-green" onclick="conectarASala()">Conectar con el Ecógrafo</button>
+            </div>
+
+            <div id="status-bar" style="margin-top: 15px;">
+                <span class="dot" id="status-dot"></span>
+                <span id="status-text">Esperando selección de modo...</span>
+            </div>
+        </div>
+
+        <div class="video-wrapper">
+            <video id="videoElem" autoplay playsinline controls></video>
+        </div>
+    </div>
+
+    <script>
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+        const videoElem = document.getElementById('videoElem');
+        const modoBox = document.getElementById('modo-box');
+        const emisorBox = document.getElementById('emisor-box');
+        const receptorBox = document.getElementById('receptor-box');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const modoAuto = urlParams.get('modo');
+        const centroAuto = urlParams.get('centro');
+        const salaAuto = urlParams.get('sala');
+
+        // Configuración apuntando al propio servidor en Render
+        const peerConfig = {
+            host: location.hostname,
+            port: location.port || (location.protocol === 'https:' ? 443 : 80),
+            path: '/peerjs',
+            secure: location.protocol === 'https:',
+            config: { 'iceServers': [{ urls: 'stun:stun.l.google.com:19302' }] }
+        };
+
+        let streamLocal = null;
+        let peer = null;
+        let tiempoInicioConexion = null;
+
+        function updateStatus(text, color = '#e2e8f0', pulse = false) {
+            statusText.innerText = text;
+            statusText.style.color = color;
+            statusDot.style.background = color;
+            if (pulse) statusDot.classList.add('dot-pulse');
+            else statusDot.classList.remove('dot-pulse');
+        }
+
+        function generarSalaId(centro, sala) {
+            const cleanCentro = centro.trim().toLowerCase().replace(/\s+/g, '-');
+            const cleanSala = sala.trim().toLowerCase().replace(/\s+/g, '-');
+            return `${cleanCentro}_${cleanSala}`;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (modoAuto === 'emisor' && centroAuto && salaAuto) {
+                const salaId = generarSalaId(centroAuto, salaAuto);
+                iniciarTransmisionAutomatica(salaId);
+            } else if (modoAuto === 'receptor' && centroAuto && salaAuto) {
+                document.getElementById('centroReceptor').value = centroAuto;
+                document.getElementById('salaReceptor').value = salaAuto;
+                configurarModo('receptor');
+            } else {
+                modoBox.style.display = 'block';
+            }
+        });
+
+        function configurarModo(tipo) {
+            modoBox.style.display = 'none';
+            if (tipo === 'emisor') emisorBox.style.display = 'block';
+            else receptorBox.style.display = 'block';
+        }
+
+        async function iniciarTransmisionAutomatica(salaId) {
+            try {
+                streamLocal = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 60 } }, audio: false });
+                videoElem.srcObject = streamLocal;
+                videoElem.muted = true;
+
+                peer = new Peer(salaId, peerConfig);
+
+                peer.on('open', (id) => updateStatus(`🔴 TRANSMITIENDO EN VIVO (SALA: ${id})`, '#00ff88', true));
+                peer.on('call', (call) => {
+                    updateStatus(`👨‍⚕️ RADIÓLOGO CONECTADO`, '#00ff88', true);
+                    call.answer(streamLocal);
+                });
+            } catch (err) {
+                updateStatus("Permisos no otorgados.", '#ff4757');
+            }
+        }
+
+        function iniciarTransmisionPantalla() {
+            const centro = document.getElementById('centroEmisor').value;
+            const sala = document.getElementById('salaEmisor').value;
+            if (!centro || !sala) return alert("Ingresa centro y sala.");
+            iniciarTransmisionAutomatica(generarSalaId(centro, sala));
+            emisorBox.style.display = 'none';
+        }
+
+        function conectarASala() {
+            const radiologo = document.getElementById('radiologoNombre').value.trim();
+            const centro = document.getElementById('centroReceptor').value.trim();
+            const sala = document.getElementById('salaReceptor').value.trim();
+
+            if (!radiologo) return alert("Ingresa tu nombre o identificación de radiólogo.");
+            if (!centro || !sala) return alert("Ingresa centro y sala.");
+
+            const salaObjetivo = generarSalaId(centro, sala);
+            updateStatus(`Conectando con ${salaObjetivo}...`, '#ffc107');
+
+            if (peer) peer.destroy();
+            peer = new Peer(peerConfig);
+
+            peer.on('open', () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 1; canvas.height = 1;
+
+                const call = peer.call(salaObjetivo, canvas.captureStream());
+
+                if (call) {
+                    tiempoInicioConexion = new Date();
+
+                    call.on('stream', (remoteStream) => {
+                        updateStatus(`🔴 EN DIRECTO - SALA: ${salaObjetivo.toUpperCase()}`, '#00ff88', true);
+                        videoElem.srcObject = remoteStream;
+                        videoElem.play();
+                    });
+
+                    window.addEventListener('beforeunload', () => registrarFinAtencion(centro, sala, radiologo));
+                }
+            });
+        }
+
+        function registrarFinAtencion(centro, sala, radiologo) {
+            if (!tiempoInicioConexion) return;
+            const fin = new Date();
+            const duracionSegundos = Math.round((fin - tiempoInicioConexion) / 1000);
+
+            const payload = JSON.stringify({
+                centro: centro,
+                sala: sala,
+                radiologo: radiologo,
+                inicio: tiempoInicioConexion.toLocaleString('es-CL'),
+                fin: fin.toLocaleString('es-CL'),
+                duracionSegundos: duracionSegundos
+            });
+
+            navigator.sendBeacon('/api/reportes/registrar', payload);
+        }
+    </script>
+</body>
+</html>

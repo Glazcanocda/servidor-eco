@@ -17,7 +17,8 @@ const server = app.listen(PORT, () => {
 const peerServer = ExpressPeerServer(server, {
     debug: true,
     path: '/',
-    proxied: true
+    proxied: true,
+    alive_timeout: 60000 // Aumenta la tolerancia de desconexión a 60 segundos
 });
 
 app.use('/peerjs', peerServer);

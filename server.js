@@ -11,19 +11,17 @@ app.use(express.static(__dirname));
 const PORT = process.env.PORT || 9000;
 const DB_FILE = path.join(__dirname, 'sesiones.json');
 
-// Inicializar archivo JSON para auditoría de tiempos
 if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify([]));
 }
 
-const sesionesActivas = new Map();
+// Guarda temporalmente el tiempo de inicio por socket
+const llamadasActivas = new Map();
 
-// Ruta de la vista del Dashboard de Administración
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// APIs para consulta y exportación de reportes
 app.get('/api/reportes', (req, res) => {
     try {
         const data = fs.readFileSync(DB_FILE, 'utf8');
@@ -33,8 +31,34 @@ app.get('/api/reportes', (req, res) => {
     }
 });
 
+// Registrar fin de llamada de forma precisa desde la web
+app.post('/api/reportes/registrar', (req, res) => {
+    const { centro, sala, radiologo, duracionSegundos, inicio, fin } = req.body;
+
+    if (!duracionSegundos || duracionSegundos < 2) return res.json({ status: 'ignored' });
+
+    const nuevoRegistro = {
+        centro: centro || 'No Especificado',
+        sala: sala || 'No Especificada',
+        radiologo: radiologo || 'Radiólogo Anónimo',
+        inicio: inicio,
+        fin: fin,
+        duracionSegundos: duracionSegundos,
+        duracionFormateada: `${Math.floor(duracionSegundos / 60)}m ${duracionSegundos % 60}s`
+    };
+
+    try {
+        const logs = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+        logs.unshift(nuevoRegistro);
+        fs.writeFileSync(DB_FILE, JSON.stringify(logs, null, 2));
+        res.json({ status: 'ok' });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 const server = app.listen(PORT, () => {
-    console.log(`Servidor de Telemedicina y Reportes activo en puerto ${PORT}`);
+    console.log(`Servidor escuchando en puerto ${PORT}`);
 });
 
 const peerServer = ExpressPeerServer(server, {
@@ -42,42 +66,6 @@ const peerServer = ExpressPeerServer(server, {
     path: '/',
     proxied: true,
     alive_timeout: 60000
-});
-
-// Captura de eventos para medir la duración de la consulta radiológica
-peerServer.on('connection', (client) => {
-    const id = client.getId();
-    if (id.includes('radiologo_') || !id.includes('_')) {
-        sesionesActivas.set(id, { inicio: new Date() });
-    }
-});
-
-peerServer.on('disconnect', (client) => {
-    const id = client.getId();
-    if (sesionesActivas.has(id)) {
-        const sesion = sesionesActivas.get(id);
-        const fin = new Date();
-        const duracionSegundos = Math.round((fin - sesion.inicio) / 1000);
-
-        if (duracionSegundos > 2) {
-            const nuevoRegistro = {
-                id: id,
-                inicio: sesion.inicio.toLocaleString('es-CL'),
-                fin: fin.toLocaleString('es-CL'),
-                duracionSegundos: duracionSegundos,
-                duracionFormateada: `${Math.floor(duracionSegundos / 60)}m ${duracionSegundos % 60}s`
-            };
-
-            try {
-                const logs = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-                logs.unshift(nuevoRegistro);
-                fs.writeFileSync(DB_FILE, JSON.stringify(logs, null, 2));
-            } catch (e) {
-                console.error("Error al guardar reporte:", e);
-            }
-        }
-        sesionesActivas.delete(id);
-    }
 });
 
 app.use('/peerjs', peerServer);

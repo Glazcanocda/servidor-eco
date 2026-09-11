@@ -16,10 +16,9 @@
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
         .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: var(--accent); }
         label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--sub); margin: 10px 0 5px; text-transform: uppercase; }
-        input, select { width: 100%; background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; outline: none; }
+        input { width: 100%; background: #0b1120; border: 1px solid var(--border); color: #fff; padding: 10px; border-radius: 6px; outline: none; }
         .btn { background: var(--accent); color: #000; border: none; padding: 12px 20px; font-weight: 700; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 15px; }
         .btn-green { background: var(--green); }
-        .btn-danger { background: #ff4757; color: #fff; width: auto; padding: 8px 15px; font-size: 0.85rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { color: var(--sub); font-size: 0.8rem; text-transform: uppercase; }
@@ -34,11 +33,11 @@
             <h1>⚙️ Panel de Control & Administración</h1>
             <p style="color: var(--sub); font-size: 0.9rem;">Gestión de Centros Médicos y Auditoría de Servicios</p>
         </div>
-        <button class="btn btn-green" onclick="window.open('/', '_blank')" style="width: auto;">Abrir Central Web</button>
+        <button class="btn btn-green" onclick="window.open('https://glazcanocda.github.io/receptor-de-video/', '_blank')" style="width: auto;">Abrir App Web</button>
     </header>
 
     <div class="grid">
-        <!-- CREADOR DE ENLACES / SALAS -->
+        <!-- CREADOR DE ENLACES -->
         <div>
             <div class="card">
                 <h2>🏬 Generar Nueva Sala / Box</h2>
@@ -86,7 +85,7 @@
     </div>
 
     <script>
-        const baseUrl = window.location.origin;
+        const appUrl = 'https://glazcanocda.github.io/receptor-de-video/';
 
         function generarTarjetas() {
             const centro = document.getElementById('centroNombre').value.trim();
@@ -97,8 +96,8 @@
             const cleanCentro = centro.toLowerCase().replace(/\s+/g, '-');
             const cleanSala = sala.toLowerCase().replace(/\s+/g, '-');
 
-            const urlEmisor = `${baseUrl}/?modo=emisor&centro=${cleanCentro}&sala=${cleanSala}`;
-            const urlReceptor = `${baseUrl}/?modo=receptor&centro=${cleanCentro}&sala=${cleanSala}`;
+            const urlEmisor = `${appUrl}?modo=emisor&centro=${cleanCentro}&sala=${cleanSala}`;
+            const urlReceptor = `${appUrl}?modo=receptor&centro=${cleanCentro}&sala=${cleanSala}`;
 
             document.getElementById('linkEmisor').innerText = urlEmisor;
             document.getElementById('linkReceptor').innerText = urlReceptor;
@@ -128,7 +127,7 @@
                     tbody.appendChild(tr);
                 });
             } catch (e) {
-                console.error("Error cargando reportes", e);
+                console.error("Error al cargar reportes", e);
             }
         }
 
@@ -152,7 +151,7 @@
                 });
         }
 
-        setInterval(cargarReportes, 5000); // Actualizar reporte cada 5 segundos
+        setInterval(cargarReportes, 5000);
         cargarReportes();
     </script>
 </body>

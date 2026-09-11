@@ -11,17 +11,24 @@ app.use(express.static(__dirname));
 const PORT = process.env.PORT || 9000;
 const DB_FILE = path.join(__dirname, 'sesiones.json');
 
+// Inicializar archivo de base de datos JSON si no existe
 if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify([]));
 }
 
-// Guarda temporalmente el tiempo de inicio por socket
-const llamadasActivas = new Map();
+// --- RUTAS DE NAVEGACIÓN ---
 
+// Ruta Principal (Emisor / Receptor)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Ruta de Administración y Auditoría
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
+// --- API DE REPORTES Y AUDITORÍA ---
 app.get('/api/reportes', (req, res) => {
     try {
         const data = fs.readFileSync(DB_FILE, 'utf8');
@@ -31,7 +38,6 @@ app.get('/api/reportes', (req, res) => {
     }
 });
 
-// Registrar fin de llamada de forma precisa desde la web
 app.post('/api/reportes/registrar', (req, res) => {
     const { centro, sala, radiologo, duracionSegundos, inicio, fin } = req.body;
 
@@ -58,7 +64,7 @@ app.post('/api/reportes/registrar', (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`Servidor escuchando en puerto ${PORT}`);
+    console.log(`Servidor de Telemedicina escuchando en el puerto ${PORT}`);
 });
 
 const peerServer = ExpressPeerServer(server, {

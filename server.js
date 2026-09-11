@@ -1,27 +1,50 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const { ExpressPeerServer } = require('peer');
-const fs = require('fs'); // Para guardar registro básico local o conectar DB
 
 const app = express();
 app.enable('trust proxy');
 app.use(express.json());
+app.use(express.static(__dirname));
 
 const PORT = process.env.PORT || 9000;
+const DB_FILE = path.join(__dirname, 'sesiones.json');
 
-// Registro simple de sesiones en memoria/archivo
-let historialSesiones = [];
+// Inicializar archivo de registros si no existe
+if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify([]));
+}
 
+// Map para rastrear tiempos de inicio de sesiones activas
+const sesionesActivas = new Map();
+
+// --- RUTAS DE NAVEGACIÓN ---
 app.get('/', (req, res) => {
-    res.send('Servidor de Señalización Ecográfica y Métricas Activo');
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Endpoint para consultar reportes desde el Dashboard
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// --- API REST PARA REPORTES ---
 app.get('/api/reportes', (req, res) => {
-    res.json(historialSesiones);
+    try {
+        const data = fs.readFileSync(DB_FILE, 'utf8');
+        res.json(JSON.parse(data));
+    } catch (e) {
+        res.json([]);
+    }
+});
+
+app.post('/api/reportes/limpiar', (req, res) => {
+    fs.writeFileSync(DB_FILE, JSON.stringify([]));
+    res.json({ status: 'ok' });
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`Servidor de Ecografía escuchando en el puerto ${PORT}`);
+    console.log(`Servidor Telemedicina escuchando en puerto ${PORT}`);
 });
 
 const peerServer = ExpressPeerServer(server, {
@@ -31,13 +54,41 @@ const peerServer = ExpressPeerServer(server, {
     alive_timeout: 60000
 });
 
-// Interceptar eventos de llamada para auditoría
+// --- AUDITORÍA DE CONEXIONES Y TIEMPOS ---
 peerServer.on('connection', (client) => {
-    console.log(`Cliente conectado: ${client.getId()}`);
+    const id = client.getId();
+    // Identificar si quien se conecta es un radiólogo (receptor)
+    if (id.includes('radiologo_') || !id.includes('_')) {
+        sesionesActivas.set(id, { inicio: new Date() });
+    }
 });
 
 peerServer.on('disconnect', (client) => {
-    console.log(`Cliente desconectado: ${client.getId()}`);
+    const id = client.getId();
+    if (sesionesActivas.has(id)) {
+        const sesion = sesionesActivas.get(id);
+        const fin = new Date();
+        const duracionSegundos = Math.round((fin - sesion.inicio) / 1000);
+
+        if (duracionSegundos > 2) { // Guardar solo sesiones válidas mayores a 2 segundos
+            const nuevoRegistro = {
+                id: id,
+                inicio: sesion.inicio.toLocaleString('es-CL'),
+                fin: fin.toLocaleString('es-CL'),
+                duracionSegundos: duracionSegundos,
+                duracionFormateada: `${Math.floor(duracionSegundos / 60)}m ${duracionSegundos % 60}s`
+            };
+
+            try {
+                const logs = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+                logs.unshift(nuevoRegistro);
+                fs.writeFileSync(DB_FILE, JSON.stringify(logs, null, 2));
+            } catch (e) {
+                console.error("Error guardando reporte:", e);
+            }
+        }
+        sesionesActivas.delete(id);
+    }
 });
 
 app.use('/peerjs', peerServer);

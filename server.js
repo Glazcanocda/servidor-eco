@@ -11,24 +11,19 @@ app.use(express.static(__dirname));
 const PORT = process.env.PORT || 9000;
 const DB_FILE = path.join(__dirname, 'sesiones.json');
 
-// Inicializar archivo de registros si no existe
+// Inicializar archivo JSON para auditoría de tiempos
 if (!fs.existsSync(DB_FILE)) {
     fs.writeFileSync(DB_FILE, JSON.stringify([]));
 }
 
-// Map para rastrear tiempos de inicio de sesiones activas
 const sesionesActivas = new Map();
 
-// --- RUTAS DE NAVEGACIÓN ---
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
+// Ruta de la vista del Dashboard de Administración
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// --- API REST PARA REPORTES ---
+// APIs para consulta y exportación de reportes
 app.get('/api/reportes', (req, res) => {
     try {
         const data = fs.readFileSync(DB_FILE, 'utf8');
@@ -38,13 +33,8 @@ app.get('/api/reportes', (req, res) => {
     }
 });
 
-app.post('/api/reportes/limpiar', (req, res) => {
-    fs.writeFileSync(DB_FILE, JSON.stringify([]));
-    res.json({ status: 'ok' });
-});
-
 const server = app.listen(PORT, () => {
-    console.log(`Servidor Telemedicina escuchando en puerto ${PORT}`);
+    console.log(`Servidor de Telemedicina y Reportes activo en puerto ${PORT}`);
 });
 
 const peerServer = ExpressPeerServer(server, {
@@ -54,10 +44,9 @@ const peerServer = ExpressPeerServer(server, {
     alive_timeout: 60000
 });
 
-// --- AUDITORÍA DE CONEXIONES Y TIEMPOS ---
+// Captura de eventos para medir la duración de la consulta radiológica
 peerServer.on('connection', (client) => {
     const id = client.getId();
-    // Identificar si quien se conecta es un radiólogo (receptor)
     if (id.includes('radiologo_') || !id.includes('_')) {
         sesionesActivas.set(id, { inicio: new Date() });
     }
@@ -70,7 +59,7 @@ peerServer.on('disconnect', (client) => {
         const fin = new Date();
         const duracionSegundos = Math.round((fin - sesion.inicio) / 1000);
 
-        if (duracionSegundos > 2) { // Guardar solo sesiones válidas mayores a 2 segundos
+        if (duracionSegundos > 2) {
             const nuevoRegistro = {
                 id: id,
                 inicio: sesion.inicio.toLocaleString('es-CL'),
@@ -84,7 +73,7 @@ peerServer.on('disconnect', (client) => {
                 logs.unshift(nuevoRegistro);
                 fs.writeFileSync(DB_FILE, JSON.stringify(logs, null, 2));
             } catch (e) {
-                console.error("Error guardando reporte:", e);
+                console.error("Error al guardar reporte:", e);
             }
         }
         sesionesActivas.delete(id);

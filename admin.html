@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de Auditoría Radiológica</title>
+    <!-- FAVICON CONTROL EN LA PESTAÑA -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #090d16; --card: #131b2e; --accent: #00d2ff; --green: #00ff88; --text: #f1f5f9; --sub: #94a3b8; --border: #1e293b; }
@@ -34,27 +36,27 @@
             <h1>⚙️ Dashboard de Auditoría y Control</h1>
             <p style="color: var(--sub); font-size: 0.9rem;">Telemedicina Ecográfica - Rendición de Cuentas</p>
         </div>
-        <button class="btn btn-green" onclick="window.open('/', '_blank')" style="width: auto;">Abrir App Web</button>
+        <button class="btn btn-green" onclick="window.open('/', '_blank')" style="width: auto;">Abrir Central Web</button>
     </header>
 
     <div class="grid">
         <!-- CREADOR DE ENLACES -->
         <div>
             <div class="card">
-                <h2>🏬 Configurar Centro / Sala</h2>
+                <h2>🏬 Registrar Centro / Sala</h2>
                 <label>Nombre del Centro Médico</label>
                 <input type="text" id="centroNombre" placeholder="Ej: Centro Médico Quillota">
                 
                 <label>Identificador de Sala / Box</label>
                 <input type="text" id="salaNombre" placeholder="Ej: Sala 1">
 
-                <button class="btn" onclick="generarTarjetas()">Generar Enlaces</button>
+                <button class="btn" onclick="generarTarjetas()">Guardar y Generar Enlaces</button>
 
                 <div id="resultadoLinks" style="display:none; margin-top: 20px;">
                     <label>📍 Enlace Emisor (Mini PC):</label>
                     <div class="link-box" id="linkEmisor"></div>
 
-                    <label style="margin-top: 15px;">👨‍⚕️ Enlace Radiólogo:</label>
+                    <label style="margin-top: 15px;">👨‍⚕️ Enlace Radiólogo Único:</label>
                     <div class="link-box" id="linkReceptor"></div>
                 </div>
             </div>
@@ -88,20 +90,26 @@
     </div>
 
     <script>
-        // Enlace base dinámico apuntando al servidor propio en Render
         const appUrl = window.location.origin;
 
-        function generarTarjetas() {
+        async function generarTarjetas() {
             const centro = document.getElementById('centroNombre').value.trim();
             const sala = document.getElementById('salaNombre').value.trim();
 
-            if (!centro || !sala) { alert("Completa ambos campos."); return; }
+            if (!centro || !sala) return alert("Completa ambos campos.");
+
+            // Registrar sala en el servidor para que aparezca en los desplegables
+            await fetch('/api/salas/agregar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ centro, sala })
+            });
 
             const cleanCentro = centro.toLowerCase().replace(/\s+/g, '-');
             const cleanSala = sala.toLowerCase().replace(/\s+/g, '-');
 
             const urlEmisor = `${appUrl}/?modo=emisor&centro=${cleanCentro}&sala=${cleanSala}`;
-            const urlReceptor = `${appUrl}/?modo=receptor&centro=${cleanCentro}&sala=${cleanSala}`;
+            const urlReceptor = `${appUrl}/?modo=receptor`;
 
             document.getElementById('linkEmisor').innerText = urlEmisor;
             document.getElementById('linkReceptor').innerText = urlReceptor;
@@ -141,7 +149,7 @@
             fetch('/api/reportes')
                 .then(res => res.json())
                 .then(data => {
-                    if (data.length === 0) { alert("Sin datos"); return; }
+                    if (data.length === 0) return alert("Sin datos");
                     let csv = 'Centro Medico;Sala;Radiologo;Inicio;Fin;Duracion Segundos;Duracion Formateada\n';
                     data.forEach(r => {
                         csv += `"${r.centro}";"${r.sala}";"${r.radiologo}";"${r.inicio}";"${r.fin}";"${r.duracionSegundos}";"${r.duracionFormateada}"\n`;

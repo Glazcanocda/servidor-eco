@@ -22,7 +22,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { color: var(--sub); font-size: 0.8rem; text-transform: uppercase; }
-        .link-box { background: #0b1120; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; word-break: break-all; font-size: 0.85rem; }
+        .link-box { background: #0b1120; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; word-break: break-all; font-size: 0.85rem; color: var(--green); }
         .badge { background: rgba(0,210,255,0.15); color: var(--accent); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem; }
         .badge-doc { background: rgba(0,255,136,0.15); color: var(--green); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem; }
     </style>
@@ -34,7 +34,7 @@
             <h1>⚙️ Dashboard de Auditoría y Control</h1>
             <p style="color: var(--sub); font-size: 0.9rem;">Telemedicina Ecográfica - Rendición de Cuentas</p>
         </div>
-        <button class="btn btn-green" onclick="window.open('https://glazcanocda.github.io/receptor-de-video/', '_blank')" style="width: auto;">Abrir App Web</button>
+        <button class="btn btn-green" onclick="window.open('/', '_blank')" style="width: auto;">Abrir App Web</button>
     </header>
 
     <div class="grid">
@@ -88,7 +88,8 @@
     </div>
 
     <script>
-        const appUrl = 'https://glazcanocda.github.io/receptor-de-video/';
+        // Enlace base dinámico apuntando directamente al servidor de Render
+        const appUrl = window.location.origin;
 
         function generarTarjetas() {
             const centro = document.getElementById('centroNombre').value.trim();
@@ -99,8 +100,8 @@
             const cleanCentro = centro.toLowerCase().replace(/\s+/g, '-');
             const cleanSala = sala.toLowerCase().replace(/\s+/g, '-');
 
-            const urlEmisor = `${appUrl}?modo=emisor&centro=${cleanCentro}&sala=${cleanSala}`;
-            const urlReceptor = `${appUrl}?modo=receptor&centro=${cleanCentro}&sala=${cleanSala}`;
+            const urlEmisor = `${appUrl}/?modo=emisor&centro=${cleanCentro}&sala=${cleanSala}`;
+            const urlReceptor = `${appUrl}/?modo=receptor&centro=${cleanCentro}&sala=${cleanSala}`;
 
             document.getElementById('linkEmisor').innerText = urlEmisor;
             document.getElementById('linkReceptor').innerText = urlReceptor;

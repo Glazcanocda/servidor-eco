@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Administración - Telemedicina Ecográfica</title>
+    <title>Dashboard de Auditoría Radiológica</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #090d16; --card: #131b2e; --accent: #00d2ff; --green: #00ff88; --text: #f1f5f9; --sub: #94a3b8; --border: #1e293b; }
@@ -11,7 +11,7 @@
         body { background: var(--bg); color: var(--text); padding: 30px; }
         header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
         h1 { font-size: 1.6rem; color: #fff; }
-        .grid { display: grid; grid-template-columns: 1fr 2fr; gap: 25px; }
+        .grid { display: grid; grid-template-columns: 1fr 2.5fr; gap: 25px; }
         @media(max-width: 900px) { .grid { grid-template-columns: 1fr; } }
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
         .card h2 { font-size: 1.1rem; margin-bottom: 15px; color: var(--accent); }
@@ -23,15 +23,16 @@
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         th { color: var(--sub); font-size: 0.8rem; text-transform: uppercase; }
         .link-box { background: #0b1120; padding: 10px; border-radius: 6px; border: 1px solid var(--border); margin-top: 10px; word-break: break-all; font-size: 0.85rem; }
-        .badge { background: rgba(0,255,136,0.15); color: var(--green); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem; }
+        .badge { background: rgba(0,210,255,0.15); color: var(--accent); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem; }
+        .badge-doc { background: rgba(0,255,136,0.15); color: var(--green); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
     <header>
         <div>
-            <h1>⚙️ Panel de Control & Administración</h1>
-            <p style="color: var(--sub); font-size: 0.9rem;">Gestión de Centros Médicos y Auditoría de Servicios</p>
+            <h1>⚙️ Dashboard de Auditoría y Control</h1>
+            <p style="color: var(--sub); font-size: 0.9rem;">Telemedicina Ecográfica - Rendición de Cuentas</p>
         </div>
         <button class="btn btn-green" onclick="window.open('https://glazcanocda.github.io/receptor-de-video/', '_blank')" style="width: auto;">Abrir App Web</button>
     </header>
@@ -40,44 +41,46 @@
         <!-- CREADOR DE ENLACES -->
         <div>
             <div class="card">
-                <h2>🏬 Generar Nueva Sala / Box</h2>
+                <h2>🏬 Configurar Centro / Sala</h2>
                 <label>Nombre del Centro Médico</label>
                 <input type="text" id="centroNombre" placeholder="Ej: Centro Médico Quillota">
                 
                 <label>Identificador de Sala / Box</label>
                 <input type="text" id="salaNombre" placeholder="Ej: Sala 1">
 
-                <button class="btn" onclick="generarTarjetas()">Generar Configuración</button>
+                <button class="btn" onclick="generarTarjetas()">Generar Enlaces</button>
 
                 <div id="resultadoLinks" style="display:none; margin-top: 20px;">
-                    <label>📍 Enlace Emisor (Configurar en Mini PC):</label>
+                    <label>📍 Enlace Emisor (Mini PC):</label>
                     <div class="link-box" id="linkEmisor"></div>
 
-                    <label style="margin-top: 15px;">👨‍⚕️ Enlace Directo Radiólogo:</label>
+                    <label style="margin-top: 15px;">👨‍⚕️ Enlace Radiólogo:</label>
                     <div class="link-box" id="linkReceptor"></div>
                 </div>
             </div>
         </div>
 
-        <!-- REPORTES Y AUDITORÍA -->
+        <!-- AUDITORÍA COMPLETA -->
         <div>
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2>📊 Auditoría de Conexiones Radiológicas</h2>
-                    <button class="btn btn-green" onclick="exportarCSV()" style="width: auto; padding: 8px 15px; font-size: 0.85rem;">📥 Descargar Excel / CSV</button>
+                    <h2>📊 Auditoría de Atenciones Médicas</h2>
+                    <button class="btn btn-green" onclick="exportarCSV()" style="width: auto; padding: 8px 15px; font-size: 0.85rem;">📥 Descargar Reporte (CSV/Excel)</button>
                 </div>
 
                 <table>
                     <thead>
                         <tr>
-                            <th>Identificador de Sala</th>
-                            <th>Inicio Atención</th>
-                            <th>Fin Atención</th>
+                            <th>Centro Médico</th>
+                            <th>Sala / Box</th>
+                            <th>Radiólogo</th>
+                            <th>Inicio</th>
+                            <th>Fin</th>
                             <th>Duración</th>
                         </tr>
                     </thead>
                     <tbody id="tablaReportes">
-                        <tr><td colspan="4" style="text-align: center; color: var(--sub);">Cargando historial de datos...</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--sub);">Cargando registros...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -112,14 +115,16 @@
                 tbody.innerHTML = '';
 
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--sub);">No hay registros de atenciones aún.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--sub);">No hay atenciones registradas.</td></tr>';
                     return;
                 }
 
                 data.forEach(item => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><span class="badge">${item.id}</span></td>
+                        <td><span class="badge">${item.centro}</span></td>
+                        <td>${item.sala}</td>
+                        <td><span class="badge-doc">${item.radiologo}</span></td>
                         <td>${item.inicio}</td>
                         <td>${item.fin}</td>
                         <td><strong>${item.duracionFormateada}</strong></td>
@@ -127,7 +132,7 @@
                     tbody.appendChild(tr);
                 });
             } catch (e) {
-                console.error("Error al cargar reportes", e);
+                console.error(e);
             }
         }
 
@@ -135,16 +140,16 @@
             fetch('/api/reportes')
                 .then(res => res.json())
                 .then(data => {
-                    if (data.length === 0) { alert("No hay datos para exportar"); return; }
-                    let csv = 'Sala/ID;Inicio;Fin;Duracion Segundos;Duracion Formateada\n';
+                    if (data.length === 0) { alert("Sin datos"); return; }
+                    let csv = 'Centro Medico;Sala;Radiologo;Inicio;Fin;Duracion Segundos;Duracion Formateada\n';
                     data.forEach(r => {
-                        csv += `"${r.id}";"${r.inicio}";"${r.fin}";"${r.duracionSegundos}";"${r.duracionFormateada}"\n`;
+                        csv += `"${r.centro}";"${r.sala}";"${r.radiologo}";"${r.inicio}";"${r.fin}";"${r.duracionSegundos}";"${r.duracionFormateada}"\n`;
                     });
 
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const link = document.createElement('a');
                     link.href = URL.createObjectURL(blob);
-                    link.setAttribute('download', `Reporte_Telemedicina_${new Date().toISOString().slice(0,10)}.csv`);
+                    link.setAttribute('download', `Reporte_Atenciones_${new Date().toISOString().slice(0,10)}.csv`);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
